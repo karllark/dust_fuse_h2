@@ -2,8 +2,6 @@
 
 from __future__ import (absolute_import, print_function, division)
 
-import numpy as np
-
 from astropy.table import Table
 
 def get_fuse_h1_h2():
@@ -19,8 +17,9 @@ def get_fuse_h1_h2():
     data = Table.read('data/fuse_h1_h2.dat',
                       format='ascii.commented_header')
 
-    print(data.colnames)
+    return data
 
 if __name__ == '__main__':
 
-    get_fuse_h1_h2()
+    h1h2_data = get_fuse_h1_h2()
+    print(h1h2_data.colnames)
