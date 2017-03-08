@@ -1,7 +1,9 @@
-# name lognhtot lognh_unc lognhi lognhi_unc lognh2 lognh2_unc logfh2 lognh  ebv  hiref
-BD+354258  21.29  0.12  21.28  0.10  19.55  0.07  -1.37  -0.76  0.29  14
-BD+532820  21.39  0.08  21.35  0.09  20.08  0.17  -1.01  -0.64  0.36  2 
-BD+56524   21.54  0.15  21.33  0.27  20.82  0.28  -0.42  -0.32  0.53  1
+# From Clayton et al. (2017, in prep), Table XX
+# Edited to have uniform star names and clear column names
+# name lognhtot lognhtot_unc lognhi lognhi_unc lognh2 lognh2_unc logfh2 lognh  ebv  hiref
+BD+35d4258    21.29  0.12  21.28  0.10  19.55  0.07  -1.37  -0.76  0.29  14
+BD+53d2820    21.39  0.08  21.35  0.09  20.08  0.17  -1.01  -0.64  0.36  2 
+BD+56d524     21.54  0.15  21.33  0.27  20.82  0.28  -0.42  -0.32  0.53  1
 HD001383      21.50  0.08  21.42  0.09  20.44  0.13  -0.76  -0.45  0.51  2 
 HD013268      21.42  0.07  21.32  0.09  20.42  0.08  -0.70  -0.43  0.44  2 
 HD014250      21.63  0.13  21.52  0.15  20.66  0.18  -0.67  -0.23  0.53  4 
