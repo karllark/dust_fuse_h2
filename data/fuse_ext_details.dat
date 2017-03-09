@@ -1,6 +1,6 @@
 # From Gordon et al. (2009, ApJ, 705, 1320), Table 2
 # Edited to have uniform star names and clear column names
-#Name           SpType  Comparison         V    A(V) A(V)_runc A(V)_sunc        E(B-V) E(B-V)_runc E(B-V)_sunc  R(V)   R(V)_runc  R(V)_sunc	
+#Name           SpType  Comparison         V    AV AV_runc AV_sunc        EBV EBV_runc EBV_sunc  RV   RV_runc  RV_sunc	
 BD+35d4258	B0.5V	HD097471	9.41	0.95      0.04      0.03	0.31      0.053      0.037	3.06      0.380      0.011	
 BD+53d2820	B0IV	HD104705	9.95	1.20      0.04      0.03	0.40      0.047      0.035	3.01      0.249      0.012	
 BD+56d524	B1V	BD+52d3210	9.75	1.80      0.04      0.02	0.60      0.044      0.023	2.98      0.191      0.009	

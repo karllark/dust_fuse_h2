@@ -29,9 +29,14 @@ def get_fuse_h1_h2():
 
     return data
 
-def get_fuse_ext_details():
+def get_fuse_ext_details(filename):
     """
     Read in the FUSE extinction details [A(V), R(V), etc.]
+
+    Parameters
+    ----------
+    filename: str
+       name of file with the data
 
     Returns
     -------
@@ -39,15 +44,22 @@ def get_fuse_ext_details():
        Table of the data [A(V), R(V), etc.]
     """
     
-    data = Table.read('data/fuse_ext_details.dat',
+    data = Table.read(filename,
                       format='ascii.commented_header',
                       header_start=-1)
 
     # create the combined uncertainties
-    keys = ['A(V)','E(B-V)','R(V)']
+    keys = ['AV','EBV','RV']
     for key in keys:
-        data[key+'_unc'] = np.sqrt(np.square(data[key+'_runc']) + 
-                                   np.square(data[key+'_sunc']))
+        if (key in data.colnames) and (not key+'_unc' in data.colnames):
+            data[key+'_unc'] = np.sqrt(np.square(data[key+'_runc']) + 
+                                       np.square(data[key+'_sunc']))
+
+    if 'EBV' not in data.colnames:
+        data['EBV'] = data['AV']/data['RV']
+        data['EBV_unc'] = data['EBV'] \
+            *np.sqrt(np.square(data['AV_unc']/data['AV'])
+                     + np.square(data['RV_unc']/data['RV']))
 
     return data
 
@@ -73,15 +85,91 @@ def get_fuse_ext_fm90():
 
     return data
 
-def get_merged_table():
+def get_bohlin78():
+    """
+    Read in the Bohlin et al. (1978) Copernicus data
+
+    Returns
+    -------
+    data : astropy.table object
+       Table of the data [EBV, etc.]
+    """
+    
+    data = Table.read('data/bohlin78_copernicus.dat',
+                      format='ascii.commented_header',
+                      header_start=-1)
+
+    # remove sightlines with non-physical EBV values
+    indxs, = np.where(data['EBV'] > 0.0)
+    data = data[indxs]
+
+    # get the units correct
+    data['nhi'] = 1e20*data['nhi']
+    data['nhtot'] = 1e20*data['nhtot']
+
+    # convert the uncertainties from % to total
+    data['nhi_unc'] = data['nhi']*data['nhi_unc']*0.01
+
+    # make log units for consitency with FUSE work
+    data['lognhi'] = np.log10(data['nhi'])
+    data['lognhi_unc'] = 0.5*(np.log10(data['nhi'] + data['nhi_unc'])
+                              - np.log10(data['nhi'] - data['nhi_unc']))
+ 
+    data['lognhtot'] = np.log10(data['nhtot'])
+
+    # make a AV column assuming RV=3.1
+    data['RV'] = np.full((len(data)),3.1)
+    data['AV'] = data['RV']*data['EBV']
+    
+    # now the NH/AV and NH/EBV
+    data['NH_AV'] = (np.power(10.0,data['lognhtot']) / data['AV'])
+    data['NH_EBV'] = (np.power(10.0,data['lognhtot']) / data['EBV'])
+
+    return data
+   
+def get_merged_table(comp=False):
+    """
+    Read in the different files and merge them
+
+    Parameters
+    ----------
+    comp : boolean, optional
+       get the comparision data
+    """
 
     # get the three tables to merge
     h1h2_data = get_fuse_h1_h2()
-    ext_detail_data = get_fuse_ext_details()
-    ext_fm90_data = get_fuse_ext_fm90()
+    if comp:
+        filename = 'data/fuse_comp_details_fm90.dat'
+    else:
+        filename = 'data/fuse_ext_details.dat'
+    ext_detail_data = get_fuse_ext_details(filename)
 
-    merged_table1 = join(h1h2_data, ext_detail_data, keys='Name')
-    merged_table = join(merged_table1, ext_fm90_data, keys='Name')
+    # merge the tables together
+    merged_table = join(h1h2_data, ext_detail_data, keys='Name')
+
+    if not comp:
+        ext_fm90_data = get_fuse_ext_fm90()
+        merged_table1 = join(merged_table, ext_fm90_data, keys='Name')
+        merged_table = merged_table1
+
+    # generate the N(H)/A(V) columns
+    merged_table['NH_AV'] = (np.power(10.0,merged_table['lognhtot']) 
+                             / merged_table['AV'])
+    nhtot_unc = 0.5*(np.power(10.0,merged_table['lognhtot'] 
+                              + merged_table['lognhtot_unc'])
+                     - np.power(10.0,merged_table['lognhtot'] 
+                                - merged_table['lognhtot_unc']))
+    merged_table['NH_AV_unc'] = merged_table['NH_AV'] \
+        * np.sqrt(np.square(nhtot_unc/np.power(10.0,merged_table['lognhtot']))
+                  + np.square(merged_table['AV_unc']/merged_table['AV']))
+
+    # generate the N(H)/E(B-V) columns
+    merged_table['NH_EBV'] = (np.power(10.0,merged_table['lognhtot']) 
+                              / merged_table['EBV'])
+    merged_table['NH_EBV_unc'] = merged_table['NH_EBV'] \
+        * np.sqrt(np.square(nhtot_unc/np.power(10.0,merged_table['lognhtot']))
+                  + np.square(merged_table['EBV_unc']/merged_table['EBV']))
 
     return(merged_table)
 
