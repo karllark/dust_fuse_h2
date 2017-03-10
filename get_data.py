@@ -27,6 +27,28 @@ def get_fuse_h1_h2():
     #    the correct E(B-V) value is for the calculated extinction curve
     data.remove_column('ebv')
 
+    # recalculate the lognhtot columns
+    #  updated lognhi columns and generally making sure basic math is correct
+    nhtot = np.power(10.0,data['lognhi']) + np.power(10.0,data['lognh2'])
+    nhi_unc = 0.5*(np.power(10.0,data['lognhi'] + data['lognhi_unc']) 
+                   - np.power(10.0,data['lognhi'] - data['lognhi_unc']))
+    nh2_unc = 0.5*(np.power(10.0,data['lognh2'] + data['lognh2_unc']) 
+                   - np.power(10.0,data['lognh2'] - data['lognh2_unc']))
+    nhtot_unc = np.sqrt(np.square(nhi_unc) + np.square(nh2_unc))
+
+    #for i in range(len(data)):
+    #    print(data['Name'][i], data['lognhtot'][i], np.log10(nhtot[i]))
+
+    data['lognhtot'] = np.log10(nhtot)
+    data['lognhtot_unc'] = 0.5*(np.log10(nhtot + nhtot_unc) 
+                                - np.log10(nhtot - nhtot_unc))
+
+    # save the linear versions
+    data['nhtot'] = nhtot
+    data['nhtot_unc'] = nhtot_unc
+    data['fh2'] = np.power(10.0,data['logfh2'])
+    data['nh'] = np.power(10.0,data['lognh'])
+
     return data
 
 def get_fuse_ext_details(filename):
