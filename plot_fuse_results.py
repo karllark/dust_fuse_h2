@@ -71,9 +71,10 @@ def get_unc(param, data):
         return None
 
 def plot_results(data, xparam, yparam,
+                 pxrange=None, pyrange=None,
                  data_comp=None,
                  data_bohlin=None,
-                 fig=None, ax=None):
+                 figsize=None):
     """
     Plot the fuse results with specificed x and y axes
 
@@ -88,19 +89,23 @@ def plot_results(data, xparam, yparam,
     yparam: str
        name of column to plot as the y variable
 
+    pxrange: float[2]
+       min/max x range to plot
+
+    pyrange: float[2]
+       min/max y range to plot
+
     data_comp: astropy.table
        Table of the data to plot for the comparision stars
 
-    fig : matplotlib figure object, optional
-        Figure to use for plot
+    figsize : float[2]
+       x,y size of plot
 
-    ax : matplotlib axes object, optional
-        Subplot of figure to use
     """
-    if fig is None:
-        fig = plt.gcf() 
-    if ax is None:
-        ax = plt.gca()
+    # set the plotting defaults
+    set_params(lw=2)
+
+    fig, ax = plt.subplots(figsize=figsize)
 
     if data_bohlin is not None:
         if ((xparam in data_bohlin.colnames) 
@@ -132,16 +137,21 @@ def plot_results(data, xparam, yparam,
 
     # fit a line
     params = np.polyfit(xcol, ycol, 1)#, w=1.0/ycol_unc)
-    print('linear fit params')
+    print('linear fit params [slope, y-intercept]')
     print(params)
     xlim = ax.get_xlim()
     x_mod = np.linspace(xlim[0],xlim[1])
     y_mod = params[1] + x_mod*params[0]
     ax.plot(x_mod,y_mod, 'r-')
 
-    print(min(y_mod), max(y_mod))
-
+    if pxrange is not None:
+        ax.set_xlim(pxrange)
+    if pyrange is not None:
+        ax.set_ylim(pyrange)
+    
     #ax.legend()
+    fig.tight_layout()
+    
     return fig
 
 if __name__ == '__main__':
@@ -176,15 +186,11 @@ if __name__ == '__main__':
     else:
         data_bohlin78 = None
 
-    # set the plotting defaults
-    set_params(lw=2)
-
     # make the requested plot
-    fig = plot_results(data, args.xparam, args.yparam,
-                       data_comp=data_comp,
-                       data_bohlin=data_bohlin78)
-    fig.tight_layout()
-    
+    fig, ax = plot_results(data, args.xparam, args.yparam,
+                           data_comp=data_comp,
+                           data_bohlin=data_bohlin78)
+
     # save the plot
     basename = 'fuse_results_' + args.xparam + '_' + args.yparam
     if args.savefig:

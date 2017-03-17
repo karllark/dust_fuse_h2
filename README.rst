@@ -2,12 +2,14 @@ Plotting Routines for FUSE H2/Extinction paper
 ==============================================
 
 Plotting routines for FUSE H2/extinction paper. 
-This paper is Clayton et al. (in prep).
+This paper is Clayton, Gordon, et al. (in prep).
 
 In Development!
 ---------------
 
 Active devleopment.
+Data still in changing.
+Use at your own risk.
 
 Contributors
 ------------

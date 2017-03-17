@@ -29,24 +29,36 @@ def get_fuse_h1_h2():
 
     # recalculate the lognhtot columns
     #  updated lognhi columns and generally making sure basic math is correct
-    nhtot = np.power(10.0,data['lognhi']) + np.power(10.0,data['lognh2'])
+    nhi = np.power(10.0,data['lognhi'])
+    nh2 = np.power(10.0,data['lognh2'])
+    nhtot = nhi + 2.0*nh2
     nhi_unc = 0.5*(np.power(10.0,data['lognhi'] + data['lognhi_unc']) 
                    - np.power(10.0,data['lognhi'] - data['lognhi_unc']))
     nh2_unc = 0.5*(np.power(10.0,data['lognh2'] + data['lognh2_unc']) 
                    - np.power(10.0,data['lognh2'] - data['lognh2_unc']))
-    nhtot_unc = np.sqrt(np.square(nhi_unc) + np.square(nh2_unc))
+    nhtot_unc = np.sqrt(np.square(nhi_unc) + np.square(2.0*nh2_unc))
 
-    #for i in range(len(data)):
-    #    print(data['Name'][i], data['lognhtot'][i], np.log10(nhtot[i]))
-
+    # save the new total
     data['lognhtot'] = np.log10(nhtot)
     data['lognhtot_unc'] = 0.5*(np.log10(nhtot + nhtot_unc) 
                                 - np.log10(nhtot - nhtot_unc))
-
     # save the linear versions
+    data['nhi'] = nhi
+    data['nhi_unc'] = nhi_unc
+    data['nh2'] = nh2
+    data['nh2_unc'] = nh2_unc
     data['nhtot'] = nhtot
     data['nhtot_unc'] = nhtot_unc
-    data['fh2'] = np.power(10.0,data['logfh2'])
+
+    # recalculate the f_H2
+    data['fh2'] = 2.*data['nh2']/data['nhtot']
+    data['fh2_unc'] = data['fh2']*np.sqrt(np.square(nh2_unc/nh2)
+                                          + np.square(nhtot_unc/nhtot))
+
+    data['logfh2'] = np.log10(data['fh2'])
+                                  
+    # H volume density
+    #   needs updating when we have new distances
     data['nh'] = np.power(10.0,data['lognh'])
 
     return data
@@ -139,13 +151,16 @@ def get_bohlin78():
  
     data['lognhtot'] = np.log10(data['nhtot'])
 
+    # create the fh2 column
+    data['fh2'] = 2.*data['nh2']/data['nhtot']
+    
     # make a AV column assuming RV=3.1
     data['RV'] = np.full((len(data)),3.1)
     data['AV'] = data['RV']*data['EBV']
     
     # now the NH/AV and NH/EBV
-    data['NH_AV'] = (np.power(10.0,data['lognhtot']) / data['AV'])
-    data['NH_EBV'] = (np.power(10.0,data['lognhtot']) / data['EBV'])
+    data['NH_AV'] = data['nhtot']/data['AV']
+    data['NH_EBV'] = data['nhtot']/data['EBV']
 
     return data
    
@@ -176,21 +191,15 @@ def get_merged_table(comp=False):
         merged_table = merged_table1
 
     # generate the N(H)/A(V) columns
-    merged_table['NH_AV'] = (np.power(10.0,merged_table['lognhtot']) 
-                             / merged_table['AV'])
-    nhtot_unc = 0.5*(np.power(10.0,merged_table['lognhtot'] 
-                              + merged_table['lognhtot_unc'])
-                     - np.power(10.0,merged_table['lognhtot'] 
-                                - merged_table['lognhtot_unc']))
+    merged_table['NH_AV'] = merged_table['nhtot']/merged_table['AV']
     merged_table['NH_AV_unc'] = merged_table['NH_AV'] \
-        * np.sqrt(np.square(nhtot_unc/np.power(10.0,merged_table['lognhtot']))
+        * np.sqrt(np.square(merged_table['nhtot_unc']/merged_table['nhtot'])
                   + np.square(merged_table['AV_unc']/merged_table['AV']))
 
     # generate the N(H)/E(B-V) columns
-    merged_table['NH_EBV'] = (np.power(10.0,merged_table['lognhtot']) 
-                              / merged_table['EBV'])
+    merged_table['NH_EBV'] = merged_table['nhtot']/merged_table['EBV']
     merged_table['NH_EBV_unc'] = merged_table['NH_EBV'] \
-        * np.sqrt(np.square(nhtot_unc/np.power(10.0,merged_table['lognhtot']))
+        * np.sqrt(np.square(merged_table['nhtot_unc']/merged_table['nhtot'])
                   + np.square(merged_table['EBV_unc']/merged_table['EBV']))
 
     return(merged_table)
