@@ -89,6 +89,7 @@ def get_fuse_ext_details(filename):
             data[key+'_unc'] = np.sqrt(np.square(data[key+'_runc']) + 
                                        np.square(data[key+'_sunc']))
 
+    # make EBV column if it does not exist        
     if 'EBV' not in data.colnames:
         data['EBV'] = data['AV']/data['RV']
         data['EBV_unc'] = data['EBV'] \
@@ -189,7 +190,7 @@ def get_merged_table(comp=False):
         ext_fm90_data = get_fuse_ext_fm90()
         merged_table1 = join(merged_table, ext_fm90_data, keys='Name')
         merged_table = merged_table1
-
+        
     # generate the N(H)/A(V) columns
     merged_table['NH_AV'] = merged_table['nhtot']/merged_table['AV']
     merged_table['NH_AV_unc'] = merged_table['NH_AV'] \
@@ -202,6 +203,24 @@ def get_merged_table(comp=False):
         * np.sqrt(np.square(merged_table['nhtot_unc']/merged_table['nhtot'])
                   + np.square(merged_table['EBV_unc']/merged_table['EBV']))
 
+    # make the 2175 A bump area
+    if ('CAV3' in merged_table.colnames) and ('gamma' in merged_table.colnames):
+        #C3 = (merged_table['CAV3'] - 1.0)*merged_table['RV']
+        #indxs = np.where(C3 == 0.0)
+        #print(C3[indxs], merged_table['CAV3'][indxs])
+        #C3_unc = C3*np.sqrt(np.square(merged_table['CAV3_unc']
+        #                              / merged_table['CAV3'])
+        #                    + np.square(merged_table['RV_unc']
+        #                                / merged_table['RV']))
+        C3 = merged_table['CAV3']
+        C3_unc = merged_table['CAV3_unc']
+        merged_table['bump_area'] = (np.pi*C3
+                                     / (2.0*merged_table['gamma']))
+        bump_area_unc = np.sqrt(np.square(C3_unc/C3)
+                                + np.square(merged_table['gamma_unc']
+                                            / merged_table['gamma']))
+        merged_table['bump_area_unc'] = merged_table['bump_area']*bump_area_unc
+        
     return(merged_table)
 
 if __name__ == '__main__':
