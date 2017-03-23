@@ -54,11 +54,27 @@ def format_colname(name):
     """
     Convert the column name to a better formatted name
     """
+    colnames = ['AV','RV', 'EBV', 
+                'CAV1','CAV2','CAV3','CAV4',
+                'C1','C2','C3','C4',
+                'x_o','gamma', 'bump_area',
+                'fh2',
+                'nhtot', 'nh2', 'nhi', 
+                'NH_AV', 'NH_EBV']
+    plotnames = ['$A(V)$','$R(V)$', '$E(B-V)$', 
+                 '$C^{A(V)}_1$','$C^{A(V)}_2$','$C^{A(V)}_3$','$C^{A(V)}_4$',
+                 '$C_1$','$C_2$','$C_3$','$C_4$',
+                 '$x_o$', '$\gamma$', '$\pi C^{A(V)}_3 / 2 \gamma$',
+                 '$f(H_2)$', 
+                 '$N(H)$', '$N(H_2)$', '$N(HI)$', 
+                 '$N(H)/A(V)$', '$N(H)/E(B-V)$']
+    dic_pairs = dict(zip(colnames, plotnames))
+
     out_name = name
     if name[:3] == 'log':
         out_name = '$\log (' + name[3:].upper() + ')$'
-    elif name in ['A(V)','R(V)']:
-        out_name = '$' + name + '$'
+    elif name in dic_pairs.keys():
+        out_name = dic_pairs[name]
 
     return out_name
 
@@ -74,7 +90,7 @@ def get_unc(param, data):
 def get_corr(xparam, yparam, x, y, xerr, yerr,
              cterm=None, cterm_unc=None):
     """
-    Return the correlate coefficient between pairs of parameters
+    Return the correlation coefficient between pairs of parameters
     """
     if ((xparam == 'AV' and yparam == "NH_AV") or
         (xparam == 'EBV' and yparam == "NH_EBV")):
@@ -82,7 +98,7 @@ def get_corr(xparam, yparam, x, y, xerr, yerr,
         xfac = xerr/x
         corr = -1.0*xfac/yfac
     elif (xparam == 'RV' and yparam == "NH_AV"
-        and av is not None and av_unc is not None):
+        and cterm is not None and cterm_unc is not None):
         avfac = cterm_unc/cterm
         yfac = yerr/y
         corr = -1.0*avfac/yfac
@@ -91,12 +107,14 @@ def get_corr(xparam, yparam, x, y, xerr, yerr,
         xfac = xerr/x
         corr = xfac/yfac
     elif (((xparam == 'RV') or (xparam == 'AV')) and
-          (yparam[0:3] == "CAV")):
+          ((yparam[0:3] == "CAV") or (yparam == 'bump_area')) and
+          cterm is not None and cterm_unc is not None):
         avfac = cterm_unc/cterm
         yfac = yerr/y
         corr = -1.0*avfac/yfac
     elif (((xparam == 'RV') or (xparam == 'EBV')) and
-          (yparam[0:1] == "C")):
+          (yparam[0:1] == "C") and
+          cterm is not None and cterm_unc is not None):
         ebvfac = cterm_unc/cterm
         yfac = yerr/y
         corr = ebvfac/yfac
