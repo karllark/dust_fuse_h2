@@ -72,7 +72,7 @@ def get_unc(param, data):
         return None
 
 def get_corr(xparam, yparam, x, y, xerr, yerr,
-             av=None, av_unc=None):
+             cterm=None, cterm_unc=None):
     """
     Return the correlate coefficient between pairs of parameters
     """
@@ -83,13 +83,23 @@ def get_corr(xparam, yparam, x, y, xerr, yerr,
         corr = -1.0*xfac/yfac
     elif (xparam == 'RV' and yparam == "NH_AV"
         and av is not None and av_unc is not None):
-        avfac = av_unc/av
+        avfac = cterm_unc/cterm
         yfac = yerr/y
         corr = -1.0*avfac/yfac
     elif xparam == 'AV' and yparam == "RV":
         yfac = yerr/y
         xfac = xerr/x
         corr = xfac/yfac
+    elif (((xparam == 'RV') or (xparam == 'AV')) and
+          (yparam[0:3] == "CAV")):
+        avfac = cterm_unc/cterm
+        yfac = yerr/y
+        corr = -1.0*avfac/yfac
+    elif (((xparam == 'RV') or (xparam == 'EBV')) and
+          (yparam[0:1] == "C")):
+        ebvfac = cterm_unc/cterm
+        yfac = yerr/y
+        corr = ebvfac/yfac
     else:
         corr = np.full(len(x), 0.0)
 
@@ -243,7 +253,8 @@ def plot_results(data, xparam, yparam,
         ax.errorbar(xcol, ycol, fmt='go')
         # plot the error bars as ellipses illustrating the covariance
         corrs = get_corr(xparam, yparam, xcol, ycol, xcol_unc, ycol_unc,
-                         av=data['AV'].data, av_unc=data['AV_unc'].data)
+                         cterm=data_comp['AV'].data,
+                         cterm_unc=data_comp['AV_unc'].data)
         plot_errorbar_corr(ax, xcol, ycol, xcol_unc, ycol_unc, corrs,
                            alpha=0.25, pcol='b')
 
@@ -256,8 +267,16 @@ def plot_results(data, xparam, yparam,
     ax.errorbar(xcol, ycol, fmt='bo')
 
     # plot the error bars as ellipses illustrating the covariance
+    if yparam[0:3] == 'CAV':
+        cparam = 'AV'
+    elif yparam[0:1] == 'C':
+        cparam = 'EBV'
+    else:
+        cparam = 'AV'
+
     corrs = get_corr(xparam, yparam, xcol, ycol, xcol_unc, ycol_unc,
-                     av=data['AV'].data, av_unc=data['AV_unc'].data)
+                     cterm=data[cparam].data,
+                     cterm_unc=data[cparam+'_unc'].data)
     plot_errorbar_corr(ax, xcol, ycol, xcol_unc, ycol_unc, corrs,
                        alpha=0.25, pcol='b')
 
