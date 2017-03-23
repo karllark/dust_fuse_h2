@@ -9,6 +9,7 @@ from matplotlib.patches import Ellipse
 from matplotlib import rc
 
 from get_data import (get_merged_table, get_bohlin78)
+from fit_line_corr_data import (line_fit_yunc_only, line_fit_xy_cov)
 
 def set_params(lw=1.5, universal_color='#262626', fontsize=16):
     '''Configure some matplotlib rcParams.
@@ -301,15 +302,62 @@ def plot_results(data, xparam, yparam,
     ax.set_xlabel(format_colname(xparam))
     ax.set_ylabel(format_colname(yparam))
 
+    # remove "bad" point
+    #indxs, = np.where(xcol < 3.0)
+    #print(len(indxs), len(xcol))
+    #xcol = xcol[indxs]
+    #xcol_unc = xcol_unc[indxs]
+    #ycol = ycol[indxs]
+    #ycol_unc = ycol_unc[indxs]
+
+    # remove "bad" points
+    #indxs, = np.where(np.logical_or(2.0 >= xcol, xcol >= 2.5))
+    #print(len(indxs), len(xcol))
+    #xcol = xcol[indxs]
+    #xcol_unc = xcol_unc[indxs]
+    #ycol = ycol[indxs]
+    #ycol_unc = ycol_unc[indxs]
+
     # fit a line
-    params = np.polyfit(xcol, ycol, 1)#, w=1.0/ycol_unc)
-    print('linear fit params [slope, y-intercept]')
+    params = np.polyfit(xcol, ycol, 1, w=1.0/ycol_unc)
+    params = np.array([params[1],params[0]])
+    print('linear fit params [y-intercept, slope]')
     print(params)
     xlim = ax.get_xlim()
     x_mod = np.linspace(xlim[0],xlim[1])
-    y_mod = params[1] + x_mod*params[0]
+    y_mod = params[0] + x_mod*params[1]
     ax.plot(x_mod,y_mod, 'r-')
 
+    # fit a line via own routines
+    #   divide to get numbers in reasonable range
+    #   otherwise does not work (likely a tolerance somewhere)
+    div_val = 1e21
+    params /= div_val
+    params2 = line_fit_yunc_only(params[0], params[1], xcol,
+                                 ycol/div_val, ycol_unc/div_val)
+    params2 *= div_val
+    y_mod = params2[0] + x_mod*params2[1]
+    ax.plot(x_mod,y_mod, 'g-')
+    print(params2)
+    
+    # now with covariances
+    sin_theta = params[1]/(1.0 + np.square(params[1]))
+    theta = np.arcsin(sin_theta)
+    b_perp = params[0]*np.cos(theta)
+
+    print('in: ', theta*180./np.pi, b_perp)
+    params3 = line_fit_xy_cov(theta, b_perp, xcol, ycol/div_val,
+                              xcol_unc, ycol_unc/div_val,
+                              np.full((len(xcol)), 0.0))
+    print('out: ', params3[1]*180./np.pi, params3[0])
+
+    b = params3[0]/np.cos(params3[1])*div_val
+    m = np.sqrt((1.0/np.cos(params3[1])) - 1.0)*div_val
+    print(b, m)
+    y_mod = b + x_mod*m
+    ax.plot(x_mod,y_mod, 'c-')
+    
+    # plot stuff
     if pxrange is not None:
         ax.set_xlim(pxrange)
     if pyrange is not None:
