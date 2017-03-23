@@ -197,15 +197,15 @@ def get_merged_table(comp=False):
         merged_table['C1_unc'] = merged_table['C1'] \
             * np.sqrt(np.square(merged_table['CAV1_unc']/merged_table['CAV1'])
                       + np.square(merged_table['EBV_unc']/merged_table['EBV']))
-        merged_table['C2'] = (merged_table['CAV2'] - 1.0)*merged_table['RV']
+        merged_table['C2'] = merged_table['CAV2']*merged_table['RV']
         merged_table['C2_unc'] = merged_table['C2'] \
             * np.sqrt(np.square(merged_table['CAV2_unc']/merged_table['CAV2'])
                       + np.square(merged_table['EBV_unc']/merged_table['EBV']))
-        merged_table['C3'] = (merged_table['CAV3'] - 1.0)*merged_table['RV']
+        merged_table['C3'] = merged_table['CAV3']*merged_table['RV']
         merged_table['C3_unc'] = merged_table['C3'] \
             * np.sqrt(np.square(merged_table['CAV3_unc']/merged_table['CAV3'])
                       + np.square(merged_table['EBV_unc']/merged_table['EBV']))
-        merged_table['C4'] = (merged_table['CAV4'] - 1.0)*merged_table['RV']
+        merged_table['C4'] = merged_table['CAV4']*merged_table['RV']
         merged_table['C4_unc'] = merged_table['C4'] \
             * np.sqrt(np.square(merged_table['CAV4_unc']/merged_table['CAV4'])
                       + np.square(merged_table['EBV_unc']/merged_table['EBV']))
