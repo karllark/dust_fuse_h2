@@ -5,6 +5,7 @@ from __future__ import (absolute_import, print_function, division)
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
 from matplotlib import rc
 
 from get_data import (get_merged_table, get_bohlin78)
@@ -66,9 +67,135 @@ def get_unc(param, data):
     Returns the unc column if it is in the table
     """
     if param+'_unc' in data.colnames:
-        return data[param+'_unc']
+        return data[param+'_unc'].data
     else:
         return None
+
+def get_corr(xparam, yparam, x, y, xerr, yerr,
+             cterm=None, cterm_unc=None):
+    """
+    Return the correlate coefficient between pairs of parameters
+    """
+    if ((xparam == 'AV' and yparam == "NH_AV") or
+        (xparam == 'EBV' and yparam == "NH_EBV")):
+        yfac = yerr/y
+        xfac = xerr/x
+        corr = -1.0*xfac/yfac
+    elif (xparam == 'RV' and yparam == "NH_AV"
+        and av is not None and av_unc is not None):
+        avfac = cterm_unc/cterm
+        yfac = yerr/y
+        corr = -1.0*avfac/yfac
+    elif xparam == 'AV' and yparam == "RV":
+        yfac = yerr/y
+        xfac = xerr/x
+        corr = xfac/yfac
+    elif (((xparam == 'RV') or (xparam == 'AV')) and
+          (yparam[0:3] == "CAV")):
+        avfac = cterm_unc/cterm
+        yfac = yerr/y
+        corr = -1.0*avfac/yfac
+    elif (((xparam == 'RV') or (xparam == 'EBV')) and
+          (yparam[0:1] == "C")):
+        ebvfac = cterm_unc/cterm
+        yfac = yerr/y
+        corr = ebvfac/yfac
+    else:
+        corr = np.full(len(x), 0.0)
+
+    return corr
+
+def plot_errorbar_corr(ax, x, y, xerr, yerr, corr,
+                       pellipse=False, pebars=True,
+                       pcol='b', alpha=0.25):
+    """
+    Plot x, y errorbars that are correlated
+
+    Parameters
+    ----------
+    x: x values
+    xerr: x values uncertainties
+    y: y values
+    yerr: y values uncertainties
+    corr: correlation coefficient of xerr and yerr
+
+    pellipse: True to plot the ellipses
+    pebars: True to plot the error bars
+
+    alpha: transparancy
+    pcol: plot color
+    """
+    
+    # make a theta vector
+    theta = 2.*np.pi*np.linspace(0.0,1.0,num=100)
+
+    # loop over the points and plot the error ellipse
+    for i in range(len(x)):
+        # get the rotation angle in degrees
+        #rot_angle = np.sign(corr)*np.arctan(corr)
+        rot_angle = corr[i]*45.0*np.pi/180.0
+        #print('corr = ', corr)
+        #print('new angle = ', rot_angle*180./np.pi)
+
+        # plot an ellipse that illustrates the covariance
+        theta = 2.*np.pi*np.linspace(0.0,1.0,num=100)
+        theta2 = 2.*np.pi*np.linspace(0.0,1.0,num=5)
+        
+        a = 1.0/np.cos(rot_angle)
+        b = a*(1.0-np.absolute(corr[i]))
+        if b == 0.0:  # case where corr = 1.0
+            b = 0.01
+        #print(a,b)
+
+        r = a*b/np.sqrt(np.square(b*np.cos(theta)) +
+                        np.square(a*np.sin(theta)))
+        ex1 = r*np.cos(theta)
+        ey1 = r*np.sin(theta)
+
+        ex = ex1*np.cos(rot_angle) - ey1*np.sin(rot_angle)
+        ey = ex1*np.sin(rot_angle) + ey1*np.cos(rot_angle)
+
+        ex_range = max(ex) - min(ex)
+        ey_range = max(ey) - min(ey)
+
+        ex *= xerr[i]/(0.5*ex_range)
+        ey *= yerr[i]/(0.5*ey_range)
+
+        ex += x[i]
+        ey += y[i]
+
+        if pellipse:
+            ax.plot(ex,ey, pcol+'-', alpha=alpha)
+
+        # now plot the rotated axes of the ellipse
+        r = a*b/np.sqrt(np.square(b*np.cos(theta2)) +
+                        np.square(a*np.sin(theta2)))
+        ex1 = r*np.cos(theta2)
+        ey1 = r*np.sin(theta2)
+
+        ex = ex1*np.cos(rot_angle) - ey1*np.sin(rot_angle)
+        ey = ex1*np.sin(rot_angle) + ey1*np.cos(rot_angle)
+
+        ex *= xerr[i]/(0.5*ex_range)
+        ey *= yerr[i]/(0.5*ey_range)
+
+        ex += x[i]
+        ey += y[i]
+        if pebars:
+            ax.plot([ex[0],ex[2]],[ey[0],ey[2]], pcol+'-', alpha=alpha)
+            ax.plot([ex[1],ex[3]],[ey[1],ey[3]], pcol+'-', alpha=alpha)
+
+        # not working for non-zero angles
+        #   possibly something to do with the large difference in the
+        #   axes units
+        #e = Ellipse(xy=(x[i], y[i]), 
+        #            width=2.0*xerr[i], 
+        #            height=2.0*yerr[i], 
+        #            angle=10.0)
+        #ax.add_patch(e)
+        #e.set_clip_box(ax.bbox)
+        #e.set_alpha(alpha)
+        #e.set_facecolor((0,0,1))
 
 def plot_results(data, xparam, yparam,
                  pxrange=None, pyrange=None,
@@ -121,17 +248,38 @@ def plot_results(data, xparam, yparam,
         xcol_unc = get_unc(xparam, data_comp)
         ycol = data_comp[yparam]
         ycol_unc = get_unc(yparam, data_comp)
-        ax.errorbar(xcol, ycol, xerr=xcol_unc, yerr=ycol_unc, 
-                    fmt='go', label='FUSE Comparisons', alpha=0.25)
+        #ax.errorbar(xcol, ycol, xerr=xcol_unc, yerr=ycol_unc, 
+        #            fmt='go', label='FUSE Comparisons', alpha=0.25)
         ax.errorbar(xcol, ycol, fmt='go')
+        # plot the error bars as ellipses illustrating the covariance
+        corrs = get_corr(xparam, yparam, xcol, ycol, xcol_unc, ycol_unc,
+                         cterm=data_comp['AV'].data,
+                         cterm_unc=data_comp['AV_unc'].data)
+        plot_errorbar_corr(ax, xcol, ycol, xcol_unc, ycol_unc, corrs,
+                           alpha=0.25, pcol='b')
 
-    xcol = data[xparam]
+    xcol = data[xparam].data
     xcol_unc = get_unc(xparam, data)
-    ycol = data[yparam]
+    ycol = data[yparam].data
     ycol_unc = get_unc(yparam, data)
-    ax.errorbar(xcol, ycol, xerr=xcol_unc, yerr=ycol_unc, 
-                fmt='bo', label='FUSE Reddened', alpha=0.25)
+    #ax.errorbar(xcol, ycol, xerr=xcol_unc, yerr=ycol_unc, 
+    #            fmt='bo', label='FUSE Reddened', alpha=0.25)
     ax.errorbar(xcol, ycol, fmt='bo')
+
+    # plot the error bars as ellipses illustrating the covariance
+    if yparam[0:3] == 'CAV':
+        cparam = 'AV'
+    elif yparam[0:1] == 'C':
+        cparam = 'EBV'
+    else:
+        cparam = 'AV'
+
+    corrs = get_corr(xparam, yparam, xcol, ycol, xcol_unc, ycol_unc,
+                     cterm=data[cparam].data,
+                     cterm_unc=data[cparam+'_unc'].data)
+    plot_errorbar_corr(ax, xcol, ycol, xcol_unc, ycol_unc, corrs,
+                       alpha=0.25, pcol='b')
+
     ax.set_xlabel(format_colname(xparam))
     ax.set_ylabel(format_colname(yparam))
 
@@ -187,9 +335,9 @@ if __name__ == '__main__':
         data_bohlin78 = None
 
     # make the requested plot
-    fig, ax = plot_results(data, args.xparam, args.yparam,
-                           data_comp=data_comp,
-                           data_bohlin=data_bohlin78)
+    fig = plot_results(data, args.xparam, args.yparam,
+                       data_comp=data_comp,
+                       data_bohlin=data_bohlin78)
 
     # save the plot
     basename = 'fuse_results_' + args.xparam + '_' + args.yparam
