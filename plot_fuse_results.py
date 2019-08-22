@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
-# from matplotlib.patches import Ellipse
+from matplotlib.patches import Polygon
 from matplotlib import rc
 
 from astropy.modeling import models, fitting
@@ -235,7 +235,7 @@ def plot_errorbar_corr(
         # print('new angle = ', rot_angle*180./np.pi)
 
         # plot an ellipse that illustrates the covariance
-        theta = 2.0 * np.pi * np.linspace(0.0, 1.0, num=100)
+        theta = 2.0 * np.pi * np.linspace(0.0, 1.0, num=500)
         theta2 = 2.0 * np.pi * np.linspace(0.0, 1.0, num=5)
 
         a = 1.0 / np.cos(rot_angle)
@@ -261,7 +261,20 @@ def plot_errorbar_corr(
         ey += y[i]
 
         if pellipse:
-            ax.plot(ex, ey, pcol + "-", alpha=alpha)
+            # ax.plot(ex, ey, pcol + "-", alpha=alpha)
+            verts = np.column_stack((ex, ey))
+            ax.add_artist(Polygon(verts, color=pcol, alpha=0.05))
+        #            Ellipse not working in a way I understand in this context
+        #            ax.add_artist(
+        #                Ellipse(
+        #                    xy=(x[i], y[i]),
+        #                    width=xerr[i] * a / ex_range,
+        #                    height=yerr[i] * b / ey_range,
+        #                    angle=rot_angle,
+        #                    color="r",
+        #                    alpha=0.1,
+        #                )
+        #            )
 
         # now plot the rotated axes of the ellipse
         r = (
@@ -362,7 +375,7 @@ def plot_results(
         ycol_unc = get_unc(yparam, data_comp)
         # ax.errorbar(xcol, ycol, xerr=xcol_unc, yerr=ycol_unc,
         #            fmt='go', label='FUSE Comparisons', alpha=0.25)
-        ax.errorbar(xcol, ycol, fmt="go")
+        ax.plot(xcol, ycol, "go")
         # plot the error bars as ellipses illustrating the covariance
         corrs = get_corr(
             xparam,
@@ -384,7 +397,7 @@ def plot_results(
     ycol_unc = get_unc(yparam, data)
     # ax.errorbar(xcol, ycol, xerr=xcol_unc, yerr=ycol_unc,
     #            fmt='bo', label='FUSE Reddened', alpha=0.25)
-    ax.errorbar(xcol, ycol, fmt="bo")
+    ax.plot(xcol, ycol, "bo")
 
     # plot the error bars as ellipses illustrating the covariance
     if yparam[0:3] == "CAV":
