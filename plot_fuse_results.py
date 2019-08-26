@@ -10,6 +10,7 @@ from matplotlib.patches import Polygon
 from matplotlib import rc
 
 from astropy.modeling import models, fitting
+from astropy.stats import sigma_clip
 
 from get_data import get_merged_table, get_bohlin78
 
@@ -426,15 +427,24 @@ def plot_results(
 
     # fit a line
     # params = np.polyfit(xcol, ycol, 1)  # , w=1.0/ycol_unc)
-    line_init = models.Polynomial1D(1)
+    # line_init = models.Polynomial1D(1)
+    line_init = models.Linear1D()
     fit = fitting.LinearLSQFitter()
+    # fitter with outlier rejection
+    or_fit = fitting.FittingWithOutlierRemoval(fit, sigma_clip, niter=3, sigma=3.0)
 
     # fit the data w/o weights
     fitted_model = fit(line_init, xcol, ycol)
     print(fitted_model)
 
     # fit the data using the uncertainties as weights
-    # fitted_model_weights = fit(line_init, xcol, ycol, weights=1.0 / ycol_unc)
+    fitted_model_weights = fit(line_init, xcol, ycol, weights=1.0 / ycol_unc)
+
+    # fit the data using the uncertainties as weights
+    mask_sc, fitted_model_weights_sc = or_fit(line_init, xcol, ycol, weights=1.0 / ycol_unc)
+    print(fitted_model_weights_sc)
+    print(mask_sc)
+    data_sc = np.ma.masked_array(ycol, mask=mask_sc)
 
     # print("linear fit params [slope, y-intercept]")
     # print(params)
@@ -443,8 +453,12 @@ def plot_results(
     # y_mod = params[1] + x_mod * params[0]
     # ax.plot(x_mod, y_mod, "k--")
 
-    ax.plot(x_mod, fitted_model(x_mod), "k--")
-    # ax.plot(x_mod, fitted_model_weights(x_mod), "k-")
+    ax.plot(x_mod, fitted_model(x_mod), "k-")
+    ax.plot(x_mod, fitted_model_weights(x_mod), "k--")
+    ax.plot(x_mod, fitted_model_weights_sc(x_mod), "k.")
+
+    ax.plot(xcol, mask_sc, 'ko')
+    print(data_sc)
 
     if pxrange is not None:
         ax.set_xlim(pxrange)
